@@ -21,11 +21,13 @@ export async function POST(request: Request) {
 	const userId = user._id
 	const { acceptMessages } = await request.json()
 
+	console.log("acceptMessages", acceptMessages)
+
 	try {
 
 		const updatedUser = await UserModel.findByIdAndUpdate(
 			userId,
-			{ isAcceptingMessages: acceptMessages },
+			{ isAcceptingMessage: acceptMessages },
 			{ new: true }
 		);
 
@@ -79,7 +81,6 @@ export async function GET(request: Request) {
 			{ status: 401 }
 		);
 	}
-
 
 	try {
 		// Retrieve the user from the database using the ID

@@ -6,6 +6,9 @@ export async function POST(request: Request) {
 	const { username, content } = await request.json();
 
 	try {
+
+
+		console.log("send message hit up ")
 		const user = await UserModel.findOne({ username }).exec();
 
 		if (!user?.isVerified) {
@@ -16,6 +19,8 @@ export async function POST(request: Request) {
 		}
 
 		// Check if the user is accepting messages
+
+		console.log("user accepting message", user.isAcceptingMessage)
 
 		if (!user.isAcceptingMessage) {
 			return Response.json(
