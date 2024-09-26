@@ -7,12 +7,11 @@ import {
 	Row,
 	Section,
 	Text,
-	Button,
 } from '@react-email/components';
 
 interface VerificationEmailProps {
-	username: string;
-	otp: string;
+	readonly username: string;
+	readonly otp: string;
 }
 
 export default function VerificationEmail({ username, otp }: VerificationEmailProps) {

@@ -15,150 +15,122 @@ import Messagecard from '@/components/Messagecard'
 import { Separator } from '@radix-ui/react-separator'
 import { Switch } from '@/components/ui/switch'
 
-const dashboard = () => {
-
+const Dashboard = () => {
 	const [messages, setMessages] = useState<Message[]>([])
-	const [isLoading, setIsLoading] = useState(false);
-	const [isSwitchLoading, setIsSwitchLoading] = useState(false);
+	const [isLoading, setIsLoading] = useState(false)
+	const [isSwitchLoading, setIsSwitchLoading] = useState(false)
+	const [profileUrl, setProfileUrl] = useState<string | null>(null) // Add state for profile URL
 
-	const { toast } = useToast();
+	const { toast } = useToast()
+	const { data: session } = useSession()
 
 	const handleDeleteMessage = (messageId: string) => {
-
 		setMessages(messages.filter((message) => message._id !== messageId))
-
 	}
 
-	const { data: session } = useSession();
-
 	const form = useForm({
-		resolver: zodResolver(acceptMessagesSchema)
+		resolver: zodResolver(acceptMessagesSchema),
 	})
 
 	const { setValue, register, watch } = form
-
 	const acceptMessages = watch('acceptMessages')
 
 	const fetchAcceptMessages = async () => {
-		setIsSwitchLoading(true);
-
+		setIsSwitchLoading(true)
 		try {
-
 			const response = await axios.get('/api/accept-messages')
-
-			console.log("response:",response)
-
+			console.log('response:', response)
 			setValue('acceptMessages', response.data.isAcceptingMessage)
-
 		} catch (error) {
-
-			const axiosError = error as AxiosError<ApiResponse>;
-
+			const axiosError = error as AxiosError<ApiResponse>
 			toast({
 				title: 'Error',
 				description: axiosError.response?.data.message ?? 'An error occurred. Please try again.',
-				variant: 'destructive'
+				variant: 'destructive',
 			})
-
-		}
-		finally {
+		} finally {
 			setIsSwitchLoading(false)
 		}
-
 	}
 
 	const fetchMessages = useCallback(async (refresh: boolean = false) => {
-
 		setIsLoading(true)
 		setIsSwitchLoading(false)
 
-
 		try {
-
 			const response = await axios.get<ApiResponse>('/api/get-messages')
-			console.log("Response:", response.data);
-			setMessages(response.data.messages || []);
+			console.log('Response:', response.data)
+			setMessages(response.data.messages || [])
 
 			if (refresh) {
-
 				toast({
 					title: 'Refreshed Messages',
 					description: 'Messages refreshed already',
 				})
-
 			}
-		 }
-		catch (error) {
-
-			const axiosError = error as AxiosError<ApiResponse>;
-
+		} catch (error) {
+			const axiosError = error as AxiosError<ApiResponse>
 			toast({
 				title: 'Error',
 				description: axiosError.response?.data.message ?? 'An error occurred. Please try again.',
-				variant: 'default'
+				variant: 'default',
 			})
-
-		}
-		finally {
+		} finally {
 			setIsLoading(false)
 			setIsSwitchLoading(false)
 		}
 	}, [setIsLoading, setMessages])
 
+	// Update profile URL when session is available
 	useEffect(() => {
+		if (typeof window !== 'undefined' && session?.user?.username) {
+			const baseUrl = `${window.location.protocol}//${window.location.host}`
+			const profileUrl = `${baseUrl}/u/${session.user.username}`
+			setProfileUrl(profileUrl) // Set profile URL
+		}
+	}, [session])
 
-		if (!session?.user) {
-			fetchMessages(),
+	useEffect(() => {
+		if (session?.user) {
+			fetchMessages()
 			fetchAcceptMessages()
 		}
-
 	}, [session, setValue, fetchAcceptMessages, fetchMessages])
 
-	// handle switch change
-
+	// Handle switch change
 	const handleSwitchChange = async () => {
 		try {
 			const response = await axios.post<ApiResponse>('/api/accept-messages', {
 				acceptMessages: !acceptMessages,
-			});
-			setValue('acceptMessages', !acceptMessages);
+			})
+			setValue('acceptMessages', !acceptMessages)
 			toast({
 				title: response.data.message,
 				variant: 'default',
-			});
+			})
 		} catch (error) {
-			const axiosError = error as AxiosError<ApiResponse>;
+			const axiosError = error as AxiosError<ApiResponse>
 			toast({
 				title: 'Error',
-				description:
-					axiosError.response?.data.message ??
-					'Failed to update message settings',
+				description: axiosError.response?.data.message ?? 'Failed to update message settings',
 				variant: 'destructive',
-			});
+			})
 		}
-	};
-
-	// Url generator for the anonymous user to write
-
-	const username = session?.user?.username;
-
-	const baseUrl = `${window.location.protocol}//${window.location.host}`
-
-	const profileUrl = `${baseUrl}/u/${username}`
-
-	// copy to clipboard feature
-
-	const copyToClipboard = async () => {
-		await navigator.clipboard.writeText(profileUrl);
-		toast({
-			title: 'Copied to clipboard',
-		})
 	}
 
-	// if session is not there or the user is not authenticated, return please login
+	// Copy to clipboard feature
+	const copyToClipboard = async () => {
+		if (profileUrl) {
+			await navigator.clipboard.writeText(profileUrl)
+			toast({
+				title: 'Copied to clipboard',
+			})
+		}
+	}
 
+	// If session is not available, ask user to login
 	if (!session?.user) {
-		return <div>please login</div>
+		return <div>Please login</div>
 	}
 
 	return (
@@ -170,7 +142,7 @@ const dashboard = () => {
 				<div className="flex items-center">
 					<input
 						type="text"
-						value={profileUrl}
+						value={profileUrl || ''} // Handle null profile URL
 						disabled
 						className="input input-bordered w-full p-2 mr-2"
 					/>
@@ -189,14 +161,15 @@ const dashboard = () => {
 					Accept Messages: {acceptMessages ? 'On' : 'Off'}
 				</span>
 			</div>
+
 			<Separator />
 
 			<Button
 				className="mt-4"
 				variant="outline"
 				onClick={(e) => {
-					e.preventDefault();
-					fetchMessages(true);
+					e.preventDefault()
+					fetchMessages(true)
 				}}
 			>
 				{isLoading ? (
@@ -219,7 +192,7 @@ const dashboard = () => {
 				)}
 			</div>
 		</div>
-	);
+	)
 }
 
-export default dashboard
+export default Dashboard
